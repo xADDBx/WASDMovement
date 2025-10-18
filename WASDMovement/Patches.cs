@@ -49,6 +49,7 @@ internal static class Patches {
             __result = false;
         }
     }
+#if Wrath
     internal static bool CanProcess(out UnitEntityData? unit, out Camera? camera) {
         unit = null;
         camera = null;
@@ -68,4 +69,5 @@ internal static class Patches {
 
         return true;
     }
+#endif
 }

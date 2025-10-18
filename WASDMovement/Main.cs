@@ -25,7 +25,9 @@ using Kingmaker.UnitLogic;
 using UnityEngine.ProBuilder.MeshOperations;
 using Kingmaker.Formations;
 using Kingmaker.Controllers.Clicks.Handlers;
+#if Wrath
 using static Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionLocoMotion;
+#endif
 
 namespace WASDMovement;
 
