@@ -1,0 +1,12 @@
+﻿{
+  "Id": "WASDMovement",
+  "DisplayName": "WASD Movement",
+  "Author": "ADDB",
+  "Version": "1.0.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "WASDMovement.dll",
+  "EntryMethod": "WASDMovement.Main.Load",
+  "HomePage": "",
+  "Repository": ""
+}
