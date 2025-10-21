@@ -8,7 +8,7 @@
 		<TargetFramework>net481</TargetFramework>
 		<AssemblyName>WASDMovement</AssemblyName>
 		<Description>WASD Movement</Description>
-		<Version>1.0.0</Version>
+		<Version>1.1.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>WASDMovement</RootNamespace>
@@ -33,6 +33,7 @@
 		<ChosenInstallDir>$(WrathInstallDir)</ChosenInstallDir>
 	</PropertyGroup>
 	<ItemGroup Condition="'$(TargetGame)' == 'RogueTrader'">
+		<None Include="OwlcatModificationManifest.json" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Unity*.dll" Private="false" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Kingmaker*.dll" Private="false" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Utility*.dll" Private="false" />
@@ -60,7 +61,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="Info.json" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
-		<None Include="OwlcatModificationManifest.json" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
 	</ItemGroup>
 	<Target Name="Deploy" AfterTargets="Build">
 		<ItemGroup>

@@ -50,7 +50,9 @@ public static class Main {
     internal static UnityModManager.ModEntry.ModLogger Log => ModEntry.Logger;
     internal static UnityModManager.ModEntry ModEntry = null!;
     private static bool m_MovedLastFrame = false;
-
+    private static readonly Lazy<int> m_NumEnums = new(() => Enum.GetValues(typeof(WalkMode)).Length);
+    private static WalkMode m_CurrentlyBinding = WalkMode.Fast;
+    private static Hotkey? m_IsBindingSomething;
     public static bool Load(UnityModManager.ModEntry modEntry) {
         ModEntry = modEntry;
         modEntry.OnUpdate = OnUpdate;
@@ -69,23 +71,95 @@ public static class Main {
         Settings.Instance.Save();
     }
     public static void OnGUI(UnityModManager.ModEntry modEntry) {
-        using (new GUILayout.HorizontalScope()) {
-            UI.Label("Walk Mode".Green());
-            GUILayout.Space(10);
-            UI.SelectionGrid(ref Settings.Instance.WalkMode,
-#if RT
-                3
-#elif Wrath
-                4
-#endif
-                , null);
-            // UI.LogSlider(ref Settings.Instance.MovementMagnitude, 0.0001f, 10f, 1f, 4);
+        using (new GUILayout.VerticalScope()) {
+            using (new GUILayout.HorizontalScope()) {
+                UI.Label("Walk Mode".Green());
+                GUILayout.Space(10);
+                UI.SelectionGrid(ref Settings.Instance.WalkMode, m_NumEnums.Value, null);
+            }
+            UI.Toggle("Hold Binding Mode", "If activated, holding a binding will temporarily override the walk mode. If disabled it will swap to the selected mode.", ref Settings.Instance.HoldBindingMode, null, null);
+            using (new GUILayout.HorizontalScope()) {
+                UI.Label("Binding Section - Add keybinds for the various walk modes".Orange());
+                if (UI.SelectionGrid(ref m_CurrentlyBinding, m_NumEnums.Value, null)) {
+                    m_IsBindingSomething = null;
+                }
+            }
+            if (Settings.Instance.Hotkeys.TryGetValue(m_CurrentlyBinding, out var current)) {
+                using (new GUILayout.HorizontalScope()) {
+                    UI.Label(current.ToString().Orange());
+                    GUILayout.Space(5);
+                    if (UI.Button("Delete".Orange())) {
+                        Settings.Instance.Hotkeys.Remove(m_CurrentlyBinding);
+                    }
+                }
+            } else {
+                UI.Label("No Bind".Orange());
+            }
+            if (m_IsBindingSomething == null) {
+                if (UI.Button("Rebind".Green())) {
+                    m_IsBindingSomething = new(default);
+                }
+            } else {
+                using (new GUILayout.HorizontalScope()) {
+                    UI.Label($"Currently: {m_IsBindingSomething}");
+                    GUILayout.Space(5);
+                    if (UI.Button("Cancel".Orange())) {
+                        m_IsBindingSomething = null;
+                    }
+                    GUILayout.Space(5);
+                    if (UI.Button("Apply".Green()) && m_IsBindingSomething != null) {
+                        Settings.Instance.Hotkeys[m_CurrentlyBinding] = m_IsBindingSomething;
+                        m_IsBindingSomething = null;
+                    }
+                    if (Event.current.isKey && Event.current.type == EventType.KeyDown && m_IsBindingSomething != null) {
+                        m_IsBindingSomething.IsShift = Event.current.modifiers.HasFlag(EventModifiers.Shift);
+                        m_IsBindingSomething.IsAlt = Event.current.modifiers.HasFlag(EventModifiers.Alt);
+                        m_IsBindingSomething.IsCtrl = Event.current.modifiers.HasFlag(EventModifiers.Control) || Event.current.modifiers.HasFlag(EventModifiers.Command);
+                        if (!IsSpecial(Event.current.keyCode)) {
+                            m_IsBindingSomething.Key = Event.current.keyCode;
+                        } else if (Event.current.character != '\0') {
+                            foreach (KeyCode c in Enum.GetValues(typeof(KeyCode))) {
+                                if (Input.GetKeyDown(c)) {
+                                    m_IsBindingSomething.Key = c;
+                                }
+                            }
+                        } else {
+                            m_IsBindingSomething.Key = KeyCode.None;
+                        }
+                        Event.current.Use();
+                    }
+                }
+            }
         }
+    }
+    private static bool IsSpecial(KeyCode code) {
+        return code switch {
+            KeyCode.LeftControl or KeyCode.RightControl or KeyCode.LeftCommand or KeyCode.RightCommand or KeyCode.LeftShift or KeyCode.RightShift or KeyCode.LeftAlt or KeyCode.RightAlt or KeyCode.None => true,
+            _ => false,
+        };
     }
 #if Wrath
     private static int m_FramesSinceLastCompanionUpdate = 0;
 #endif
+    private static WalkMode? m_LastOverride = null;
+    private static bool m_Propogate = false;
     public static void OnUpdate(UnityModManager.ModEntry modEntry, float z) {
+        WalkMode? overrideMode = null;
+        bool overriden = false;
+        foreach (var pair in Settings.Instance.Hotkeys) {
+            if (pair.Value.IsPressed()) {
+                if (Settings.Instance.HoldBindingMode) {
+                    overrideMode = pair.Key;
+                } else {
+                    overriden = Settings.Instance.WalkMode != pair.Key;
+                    if (overriden) {
+                        Settings.Instance.WalkMode = pair.Key;
+                        Settings.Instance.Save();
+                    }
+                }
+            }
+        }
+        var actualWalkMode = overrideMode ?? Settings.Instance.WalkMode;
 #if RT
         if (!GamepadInputController.CanProcessInput) {
             return;
@@ -95,7 +169,12 @@ public static class Main {
             return;
         }
 
-        var movement = ReadKeyboardInput();
+        var movement = ReadKeyboardInput(actualWalkMode);
+        if (overrideMode != m_LastOverride || overriden) {
+            unit.Commands.InterruptMove();
+            movement = Vector2.zero;
+        }
+        m_LastOverride = overrideMode;
         bool movedThisFrame = movement.sqrMagnitude > 0;
         if (!movedThisFrame && !m_MovedLastFrame) {
             return;
@@ -107,41 +186,57 @@ public static class Main {
         if (!Patches.CanProcess(out var unit, out var camera)) {
             return;
         }
-        var movement = ReadKeyboardInput();
+        var movement = ReadKeyboardInput(actualWalkMode);
         if (!unit!.IsDirectlyControllable) {
             movement = Vector2.zero;
         }
+        if (overrideMode != m_LastOverride || overriden) {
+            unit.Commands.InterruptMove();
+            movement = Vector2.zero;
+        }
+        m_LastOverride = overrideMode;
         var movedThisFrame = movement.sqrMagnitude > 0;
         if (movedThisFrame || m_MovedLastFrame) {
             Vector2 mov = (movement.x * camera!.transform.right + movement.y * camera.transform.forward).To2D();
             mov.Normalize();
             if (unit.View?.AgentOverride is UnitMovementAgentContinuous agent) {
                 agent.DirectionFromController = mov;
-                agent.DirectionFromControllerMagnitude = movement.magnitude;
+                agent.DirectionFromControllerMagnitude = mov.magnitude;
+                if (actualWalkMode == WalkMode.Fast) {
+                    agent.MaxSpeedOverride = unit.CurrentSpeedMps * 1.8f;
+                }
                 if (unit.GetSaddledUnit()?.View?.AgentOverride is UnitMovementAgentContinuous agent2) {
                     agent2.DirectionFromController = mov;
-                    agent2.DirectionFromControllerMagnitude = movement.magnitude;
+                    agent2.DirectionFromControllerMagnitude = mov.magnitude;
+                    if (actualWalkMode == WalkMode.Fast) {
+                        agent2.MaxSpeedOverride = unit.GetSaddledUnit().CurrentSpeedMps * 1.8f;
+                    }
                 }
             }
-            if (unit.Commands.MoveContinuously == null) {
+            if (unit.Commands.MoveContinuously == null || overriden) {
                 unit.Commands.InterruptMove();
                 UnitMoveContiniously cmd = new() {
                     CreatedByPlayer = true,
-                    SpeedLimit = Math.Max(30.Feet().Meters / 3, unit.ModifiedSpeedMps),
-                    MovementType = WalkMap[Settings.Instance.WalkMode]
+                    SpeedLimit = Math.Min(30.Feet().Meters / 3, unit.ModifiedSpeedMps) * (actualWalkMode == WalkMode.Fast ? 1.8f : 1f),
+                    MovementType = WalkMap[actualWalkMode],
                 };
                 cmd.Init(unit);
                 unit.Commands.Run(cmd);
-                if (Settings.Instance.WalkMode == WalkMode.Fast) {
+                if (actualWalkMode == WalkMode.Fast) {
                     cmd.Accelerate();
+                } else {
+                    cmd.Deaccelerate();
                 }
                 if (unit.View?.AgentOverride is UnitMovementAgentContinuous agent3) {
                     agent3.DirectionFromController = mov;
+                    if (actualWalkMode == WalkMode.Fast) {
+                        agent3.MaxSpeedOverride = unit.CurrentSpeedMps * 1.8f;
+                    }
                 }
             }
             Game.Instance.CameraController?.Follower?.Follow(unit);
             m_FramesSinceLastCompanionUpdate++;
-            if (Game.Instance.SelectionCharacter.SelectedUnits?.Count > 1 && (m_FramesSinceLastCompanionUpdate % 40 == 0 || !movedThisFrame)) {
+            if (Game.Instance.SelectionCharacter.SelectedUnits?.Count > 1 && (m_FramesSinceLastCompanionUpdate % 2 == 0 || !movedThisFrame)) {
                 var list = Game.Instance.Player.PartyAndPets.Where((UnitEntityData c) => c.IsDirectlyControllable).ToList<UnitEntityData>();
                 var index = list.IndexOf(unit);
                 var forward = unit.View!.Transform.forward;
@@ -158,7 +253,7 @@ public static class Main {
                         unit2.Commands.InterruptMove();
                         cmd.Init(unit2);
                         unit2.Commands.Run(cmd);
-                        if (Settings.Instance.WalkMode == WalkMode.Fast) {
+                        if (actualWalkMode == WalkMode.Fast) {
                             cmd.Accelerate();
                         }
                     }
@@ -173,7 +268,7 @@ public static class Main {
     public const KeyCode DownKey = KeyCode.S;
     public const KeyCode LeftKey = KeyCode.A;
     public const KeyCode RightKey = KeyCode.D;
-    private static Vector2 ReadKeyboardInput() {
+    private static Vector2 ReadKeyboardInput(WalkMode mode) {
         float x = 0f, y = 0f;
 
         if (Input.GetKey(LeftKey)) {
@@ -195,7 +290,7 @@ public static class Main {
             v = v.normalized;
         }
 #if RT
-        v /= (int)Settings.Instance.WalkMode;
+        v /= (int)mode;
 #endif
 
         return v;

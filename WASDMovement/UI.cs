@@ -65,7 +65,7 @@ public static class UI {
         options = options.Length == 0 ? [GUILayout.ExpandWidth(false)] : options;
         bool changed = false;
         using (new GUILayout.HorizontalScope()) {
-            var newValue = GUILayout.Toggle(setting, name.Green(), options);
+            var newValue = GUILayout.Toggle(setting, name.Orange(), options);
             if (newValue != setting) {
                 changed = true;
                 setting = newValue;
