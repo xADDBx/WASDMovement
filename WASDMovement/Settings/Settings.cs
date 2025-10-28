@@ -15,6 +15,10 @@ internal class Settings : AbstractSettings {
     public bool HoldBindingMode = false;
     public Main.WalkMode WalkMode = Main.WalkMode.Fast;
     public Dictionary<Main.WalkMode, Hotkey> Hotkeys = [];
+    public KeyCode Up = KeyCode.W;
+    public KeyCode Down = KeyCode.S;
+    public KeyCode Left = KeyCode.A;
+    public KeyCode Right = KeyCode.D;
 }
 public class Hotkey(KeyCode key, bool ctrl = false, bool shift = false, bool alt = false) {
     [JsonProperty]

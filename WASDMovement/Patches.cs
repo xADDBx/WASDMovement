@@ -36,7 +36,7 @@ internal static class Patches {
         UISettingsRoot.Instance.CameraDown.name
 #endif
     ]);
-    private static readonly KeyCode[] m_KeyCodes = [KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D];
+    private static readonly KeyCode[] m_KeyCodes = [Settings.Instance.Up, Settings.Instance.Down, Settings.Instance.Left, Settings.Instance.Right];
     [HarmonyPatch(typeof(KeyboardAccess.Binding), nameof(KeyboardAccess.Binding.InputMatched)), HarmonyPostfix]
     private static void InputMatched(KeyboardAccess.Binding __instance, ref bool __result) {
         if (m_KeyCodes.Contains(__instance.Key) && m_Names.Value.Contains(__instance.Name)

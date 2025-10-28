@@ -142,7 +142,6 @@ public static class Main {
     private static int m_FramesSinceLastCompanionUpdate = 0;
 #endif
     private static WalkMode? m_LastOverride = null;
-    private static bool m_Propogate = false;
     public static void OnUpdate(UnityModManager.ModEntry modEntry, float z) {
         WalkMode? overrideMode = null;
         bool overriden = false;
@@ -263,24 +262,19 @@ public static class Main {
         m_MovedLastFrame = movedThisFrame;
 #endif
     }
-
-    public const KeyCode UpKey = KeyCode.W;
-    public const KeyCode DownKey = KeyCode.S;
-    public const KeyCode LeftKey = KeyCode.A;
-    public const KeyCode RightKey = KeyCode.D;
     private static Vector2 ReadKeyboardInput(WalkMode mode) {
         float x = 0f, y = 0f;
 
-        if (Input.GetKey(LeftKey)) {
+        if (Input.GetKey(Settings.Instance.Left)) {
             x -= Settings.Instance.MovementMagnitude;
         }
-        if (Input.GetKey(RightKey)) {
+        if (Input.GetKey(Settings.Instance.Right)) {
             x += Settings.Instance.MovementMagnitude;
         }
-        if (Input.GetKey(UpKey)) {
+        if (Input.GetKey(Settings.Instance.Up)) {
             y += Settings.Instance.MovementMagnitude;
         }
-        if (Input.GetKey(DownKey)) {
+        if (Input.GetKey(Settings.Instance.Down)) {
             y -= Settings.Instance.MovementMagnitude;
         }
 
