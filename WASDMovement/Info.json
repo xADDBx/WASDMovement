@@ -3,7 +3,7 @@
   "DisplayName": "WASD Movement",
   "Author": "ADDB",
   "Version": "1.1.1",
-  "ManagerVersion": "0.25.0",
+  "ManagerVersion": "0.24.0",
   "Requirements": [],
   "AssemblyName": "WASDMovement.dll",
   "EntryMethod": "WASDMovement.Main.Load",

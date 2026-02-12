@@ -2,10 +2,11 @@
 	<Import Project="$(SolutionDir)GamePath.props" Condition="Exists('$(SolutionDir)GamePath.props')" />
 
 	<PropertyGroup>
-		<Configurations>RogueTrader;Wrath</Configurations>
+		<Configurations>RogueTrader;Wrath;Kingmaker</Configurations>
 		<Configuration Condition="'$(Configuration)' == ''">RogueTrader</Configuration>
 		<TargetGame Condition="'$(TargetGame)' == ''">$(Configuration)</TargetGame>
-		<TargetFramework>net481</TargetFramework>
+		<TargetFramework Condition="'$(Configuration)' != 'Kingmaker'">net481</TargetFramework>
+		<TargetFramework Condition="'$(Configuration)' == 'Kingmaker'">net472</TargetFramework>
 		<AssemblyName>WASDMovement</AssemblyName>
 		<Description>WASD Movement</Description>
 		<Version>1.1.1</Version>
@@ -18,9 +19,12 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RogueTraderData>$(LocalAppData)Low\Owlcat Games\Warhammer 40000 Rogue Trader</RogueTraderData>
 		<WrathData>$(LocalAppData)Low\Owlcat Games\Pathfinder Wrath Of The Righteous</WrathData>
+		<KingmakerData>$(LocalAppData)Low\Owlcat Games\Pathfinder Kingmaker</KingmakerData>
 	</PropertyGroup>
+	<Import Project="$(SolutionDir)GamePath_Kingmaker.props" Condition="Exists('$(SolutionDir)GamePath_Kingmaker.props') and '$(TargetGame)' == 'Kingmaker'" />
 	<Import Project="$(SolutionDir)GamePath_Wrath.props" Condition="Exists('$(SolutionDir)GamePath_Wrath.props') and '$(TargetGame)' == 'Wrath'" />
 	<Import Project="$(SolutionDir)GamePath_RogueTrader.props" Condition="Exists('$(SolutionDir)GamePath_RogueTrader.props') and '$(TargetGame)' == 'RogueTrader'" />
+
 	<PropertyGroup Condition="'$(TargetGame)' == 'RogueTrader'">
 		<GameDataFolder>WH40KRT_Data</GameDataFolder>
 		<DefineConstants>RT</DefineConstants>
@@ -32,8 +36,13 @@
 		<DefineConstants>Wrath</DefineConstants>
 		<ChosenInstallDir>$(WrathInstallDir)</ChosenInstallDir>
 	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetGame)' == 'Kingmaker'">
+		<GameDataFolder>Kingmaker_Data</GameDataFolder>
+		<DefineConstants>KM</DefineConstants>
+		<ChosenInstallDir>$(KingmakerInstallDir)</ChosenInstallDir>
+	</PropertyGroup>
 	<ItemGroup Condition="'$(TargetGame)' == 'RogueTrader'">
-		<None Include="OwlcatModificationManifest.json" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Unity*.dll" Private="false" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Kingmaker*.dll" Private="false" />
 		<Reference Include="$(RogueTraderInstallDir)\$(GameDataFolder)\Managed\Utility*.dll" Private="false" />
@@ -59,6 +68,14 @@
 		<Reference Include="$(WrathInstallDir)\$(GameDataFolder)\Managed\UniRx.dll*" Private="false" />
 		<Reference Include="$(WrathInstallDir)\$(GameDataFolder)\Managed\UnityModManager\0Harmony.dll*" Private="false" />
 	</ItemGroup>
+	<ItemGroup Condition="'$(TargetGame)' == 'Kingmaker'">
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\Unity*.dll" Private="false" />
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\Assembly-CSharp.dll*" Publicize="true" Private="false" />
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\Newtonsoft.Json.dll*" Private="false" />
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\UniRx.dll*" Private="false" />
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\UnityModManager\UnityModManager.dll*" Publicize="true" Private="false" />
+		<Reference Include="$(KingmakerInstallDir)\$(GameDataFolder)\Managed\UnityModManager\0Harmony.dll*" Private="false" />
+	</ItemGroup>
 	<ItemGroup>
 		<None Include="Info.json" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
 	</ItemGroup>
@@ -66,11 +83,14 @@
 		<ItemGroup>
 			<Files Include="$(TargetDir)\**\*.*" />
 		</ItemGroup>
-		
+
 		<Copy SourceFiles="@(Files)" Condition="'$(TargetGame)' == 'RogueTrader'"
 			  DestinationFiles="@(Files->'$(RogueTraderData)\UnityModManager\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)')" />
 		<Copy SourceFiles="@(Files)" Condition="'$(TargetGame)' == 'Wrath'"
 			  DestinationFiles="@(Files->'$(WrathInstallDir)\Mods\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(Files)" Condition="'$(TargetGame)' == 'Kingmaker'"
+			  DestinationFiles="@(Files->'$(KingmakerInstallDir)\Mods\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
 
 		<ZipDirectory SourceDirectory="$(MSBuildProjectDirectory)\$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)\$(OutputPath)\..\$(AssemblyName)-$(TargetGame)-$(Version).zip" Overwrite="true" />
 	</Target>
@@ -124,10 +144,31 @@
   &lt;/PropertyGroup&gt;&#xD;
 &lt;/Project&gt;"
 						  Overwrite="true" Encoding="utf-8" />
+
+		<Exec Condition="'$(KingmakerInstallDir)' == ''"
+			  Command="findstr /C:&quot;[Manager] Mods path: &quot; &quot;$(KingmakerData)\output_log.txt&quot;"
+			  IgnoreExitCode="true" ConsoleToMSBuild="true">
+			<Output TaskParameter="ConsoleOutput" PropertyName="KM_MonoPathLine" />
+		</Exec>
+
+		<PropertyGroup>
+			<KM_MonoPathRegex>^\[Manager\] Mods path: (.*?)\\Mods.$</KM_MonoPathRegex>
+			<KingmakerInstallDir Condition="'$(KingmakerInstallDir)' == ''">$([System.Text.RegularExpressions.Regex]::Match($(KM_MonoPathLine), $(KM_MonoPathRegex)).Groups[1].Value)</KingmakerInstallDir>
+		</PropertyGroup>
+
+		<WriteLinesToFile Condition="'$(KingmakerInstallDir)' != ''"
+						  File="$(SolutionDir)GamePath_Kingmaker.props"
+						  Lines="&lt;Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'&gt;&#xD;
+  &lt;PropertyGroup&gt;&#xD;
+    &lt;KingmakerInstallDir&gt;$(KingmakerInstallDir)&lt;/KingmakerInstallDir&gt;&#xD;
+  &lt;/PropertyGroup&gt;&#xD;
+&lt;/Project&gt;"
+						  Overwrite="true" Encoding="utf-8" />
 	</Target>
 
 	<Target Name="DeleteCustomPropsFile" BeforeTargets="Clean">
 		<Delete Files="GamePath_RogueTrader.props" />
 		<Delete Files="GamePath_Wrath.props" />
+		<Delete Files="GamePath_Kingmaker.props" />
 	</Target>
 </Project>

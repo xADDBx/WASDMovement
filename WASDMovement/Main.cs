@@ -8,9 +8,12 @@ using Kingmaker.UI.Selection;
 using Kingmaker.View;
 #if RT
 using Owlcat.Runtime.Core.Utility;
-#elif Wrath
+#elif Wrath || KM
 using Kingmaker.UI._ConsoleUI;
 using Kingmaker.UI._ConsoleUI.InputLayers.InGameLayer;
+using static Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionLocoMotion;
+#endif
+#if Wrath
 using Owlcat.Runtime.Core.Utils;
 #endif
 using System.Reflection;
@@ -22,12 +25,13 @@ using Kingmaker.PubSubSystem;
 using Kingmaker.Utility;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic;
+#if !KM
 using UnityEngine.ProBuilder.MeshOperations;
+#endif
 using Kingmaker.Formations;
 using Kingmaker.Controllers.Clicks.Handlers;
-#if Wrath
-using static Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionLocoMotion;
-#endif
+using Kingmaker.UI._ConsoleUI.Models;
+using static Kingmaker.Visual.Fluid.Fluid2DEmitter;
 
 namespace WASDMovement;
 
@@ -36,11 +40,11 @@ public static class Main {
         Fast = 1,
         Normal = 2,
         Slow = 10,
-#if Wrath
+#if Wrath || KM
         Stealth = 20
 #endif
     }
-#if Wrath
+#if Wrath || KM
     private static readonly Dictionary<WalkMode, WalkSpeedType> WalkMap = new() {
         { WalkMode.Fast, WalkSpeedType.Normal }, { WalkMode.Normal, WalkSpeedType.Normal },
         { WalkMode.Slow, WalkSpeedType.Slow }, { WalkMode.Stealth, WalkSpeedType.Stealth },
@@ -138,7 +142,7 @@ public static class Main {
             _ => false,
         };
     }
-#if Wrath
+#if Wrath || KM
     private static int m_FramesSinceLastCompanionUpdate = 0;
 #endif
     private static WalkMode? m_LastOverride = null;
@@ -181,7 +185,7 @@ public static class Main {
         m_MovedLastFrame = movedThisFrame;
         movement = (movement.x * CameraRig.Instance.Right + movement.y * CameraRig.Instance.Up).To2D();
         Game.Instance.SynchronizedDataController.PushLeftStickMovement(unit, movement, movement.magnitude);
-#elif Wrath
+#elif Wrath || KM
         if (!Patches.CanProcess(out var unit, out var camera)) {
             return;
         }
@@ -198,12 +202,17 @@ public static class Main {
         if (movedThisFrame || m_MovedLastFrame) {
             Vector2 mov = (movement.x * camera!.transform.right + movement.y * camera.transform.forward).To2D();
             mov.Normalize();
+#if Wrath
             if (unit.View?.AgentOverride is UnitMovementAgentContinuous agent) {
+#elif KM
+            if (unit.View?.AgentOverride is UnitMovementAgentContinious agent) {
+#endif
                 agent.DirectionFromController = mov;
                 agent.DirectionFromControllerMagnitude = mov.magnitude;
                 if (actualWalkMode == WalkMode.Fast) {
                     agent.MaxSpeedOverride = unit.CurrentSpeedMps * 1.8f;
                 }
+#if Wrath
                 if (unit.GetSaddledUnit()?.View?.AgentOverride is UnitMovementAgentContinuous agent2) {
                     agent2.DirectionFromController = mov;
                     agent2.DirectionFromControllerMagnitude = mov.magnitude;
@@ -211,8 +220,13 @@ public static class Main {
                         agent2.MaxSpeedOverride = unit.GetSaddledUnit().CurrentSpeedMps * 1.8f;
                     }
                 }
+#endif
             }
+#if Wrath
             if (unit.Commands.MoveContinuously == null || overriden) {
+#elif KM
+            if (unit.Commands.MoveContiniously == null || overriden) {
+#endif
                 unit.Commands.InterruptMove();
                 UnitMoveContiniously cmd = new() {
                     CreatedByPlayer = true,
@@ -226,7 +240,11 @@ public static class Main {
                 } else {
                     cmd.Deaccelerate();
                 }
+#if Wrath
                 if (unit.View?.AgentOverride is UnitMovementAgentContinuous agent3) {
+#elif KM
+                if (unit.View?.AgentOverride is UnitMovementAgentContinious agent3) {
+#endif
                     agent3.DirectionFromController = mov;
                     if (actualWalkMode == WalkMode.Fast) {
                         agent3.MaxSpeedOverride = unit.CurrentSpeedMps * 1.8f;
@@ -235,12 +253,28 @@ public static class Main {
             }
             Game.Instance.CameraController?.Follower?.Follow(unit);
             m_FramesSinceLastCompanionUpdate++;
-            if (Game.Instance.SelectionCharacter.SelectedUnits?.Count > 1 && (m_FramesSinceLastCompanionUpdate % 2 == 0 || !movedThisFrame)) {
+#if Wrath
+            var selected = Game.Instance.SelectionCharacter.SelectedUnits;
+#elif KM
+            var selected = Game.Instance.UI.SelectionManager.SelectedUnits;
+#endif
+            if (selected?.Count > 1 && (m_FramesSinceLastCompanionUpdate % 2 == 0 || !movedThisFrame)) {
+#if Wrath
                 var list = Game.Instance.Player.PartyAndPets.Where((UnitEntityData c) => c.IsDirectlyControllable).ToList<UnitEntityData>();
+#elif KM
+                var list = Game.Instance.Player.Party.Where((UnitEntityData c) => c.IsDirectlyControllable).ToList<UnitEntityData>();
+#endif
                 var index = list.IndexOf(unit);
+#if Wrath
                 var forward = unit.View!.Transform.forward;
-                var pos = PartyFormationHelper.FindFormationCenterFromOneUnit(FormationAnchor.Front, forward, index, unit.Position, list, Game.Instance.SelectionCharacter.SelectedUnits);
-                ClickGroundHandler.MoveSelectedUnitsToPoint(pos, forward, false, false, 1f, false, (unit2, settings) => {
+#elif KM
+                var forward = unit.View!.transform.forward;
+#endif
+                var pos = PartyFormationHelper.FindFormationCenterFromOneUnit(FormationAnchor.Front, forward, index, unit.Position, list, selected);
+
+                ClickGroundHandler.MoveSelectedUnitsToPoint(pos, forward, false, false, 1f, false,
+#if Wrath
+                (unit2, settings) => {
                     if (unit2 != unit) {
                         var cmd = new UnitMoveTo(settings.Destination) {
                             Orientation = settings.Orientation,
@@ -256,7 +290,27 @@ public static class Main {
                             cmd.Accelerate();
                         }
                     }
-                });
+                }
+#elif KM
+                (unit2, destination, speedLimit, orientation, delay, showTargetMarker) => {
+                    if (unit2 != unit) {
+                        var cmd = new UnitMoveTo(destination) {
+                            Orientation = orientation,
+                            MovementDelay = delay,
+                            SpeedLimit = speedLimit,
+                            CreatedByPlayer = true,
+                            ShowTargetMarker = showTargetMarker
+                        };
+                        unit2.Commands.InterruptMove();
+                        cmd.Init(unit2);
+                        unit2.Commands.Run(cmd);
+                        if (actualWalkMode == WalkMode.Fast) {
+                            cmd.Accelerate();
+                        }
+                    }
+                }
+#endif
+                );
             }
         }
         m_MovedLastFrame = movedThisFrame;

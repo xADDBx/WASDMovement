@@ -1,9 +1,11 @@
 ﻿using HarmonyLib;
+
 #if RT
 using Kingmaker.UI.InputSystems;
 using Kingmaker.UI.Models.SettingsUI;
 using Kingmaker.Controllers;
-#elif Wrath
+#endif
+#if Wrath || KM
 using Kingmaker;
 using Kingmaker.Controllers.Clicks.Handlers;
 using Kingmaker.EntitySystem.Entities;
@@ -15,8 +17,10 @@ using Kingmaker.UI._ConsoleUI.Models;
 using Kingmaker.UI.SettingsUI;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic.Commands.Base;
-using Owlcat.Runtime.Core.Utils;
 using System.Reflection.Emit;
+#endif
+#if Wrath
+using Owlcat.Runtime.Core.Utils;
 #endif
 using UnityEngine;
 
@@ -49,16 +53,24 @@ internal static class Patches {
             __result = false;
         }
     }
-#if Wrath
+#if Wrath || KM
     internal static bool CanProcess(out UnitEntityData? unit, out Camera? camera) {
         unit = null;
         camera = null;
         if (Game.Instance.CurrentMode != GameModeType.Default
+#if Wrath
                 || Game.Instance.CutsceneLock.Active
+#elif KM
+                || Game.Instance.CutsceneLock
+#endif
                 || Game.Instance.Player.IsInCombat) {
             return false;
         }
+#if Wrath
         unit = Game.Instance.SelectionCharacter.SelectedUnit.Value.Value;
+#elif KM
+        unit = Game.Instance.UI.SelectionManager.SingleSelectedUnit ?? Game.Instance.UI.SelectionManager.FirstSelectUnit;
+#endif
         if (unit == null) {
             return false;
         }
@@ -70,4 +82,4 @@ internal static class Patches {
         return true;
     }
 #endif
-}
+    }
