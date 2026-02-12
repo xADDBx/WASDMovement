@@ -30,8 +30,6 @@ using UnityEngine.ProBuilder.MeshOperations;
 #endif
 using Kingmaker.Formations;
 using Kingmaker.Controllers.Clicks.Handlers;
-using Kingmaker.UI._ConsoleUI.Models;
-using static Kingmaker.Visual.Fluid.Fluid2DEmitter;
 
 namespace WASDMovement;
 
