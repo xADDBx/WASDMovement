@@ -11,13 +11,21 @@ internal class Settings : AbstractSettings {
     public static Settings Instance => _instance.Value;
     protected override string Name => "Settings.json";
 
+    [JsonProperty]
     public float MovementMagnitude = 1f;
+    [JsonProperty]
     public bool HoldBindingMode = false;
+    [JsonProperty]
     public Main.WalkMode WalkMode = Main.WalkMode.Fast;
+    [JsonProperty]
     public Dictionary<Main.WalkMode, Hotkey> Hotkeys = [];
+    [JsonProperty]
     public KeyCode Up = KeyCode.W;
+    [JsonProperty]
     public KeyCode Down = KeyCode.S;
+    [JsonProperty]
     public KeyCode Left = KeyCode.A;
+    [JsonProperty]
     public KeyCode Right = KeyCode.D;
 }
 public class Hotkey(KeyCode key, bool ctrl = false, bool shift = false, bool alt = false) {

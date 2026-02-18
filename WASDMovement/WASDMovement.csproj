@@ -9,7 +9,7 @@
 		<TargetFramework Condition="'$(Configuration)' == 'Kingmaker'">net472</TargetFramework>
 		<AssemblyName>WASDMovement</AssemblyName>
 		<Description>WASD Movement</Description>
-		<Version>1.21</Version>
+		<Version>1.2.1</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>WASDMovement</RootNamespace>
