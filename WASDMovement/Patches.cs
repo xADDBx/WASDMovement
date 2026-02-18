@@ -38,6 +38,11 @@ internal static class Patches {
         UISettingsRoot.Instance.CameraRight.name,
         UISettingsRoot.Instance.CameraUp.name,
         UISettingsRoot.Instance.CameraDown.name
+#elif KM
+        SettingsRoot.Instance.CameraLeft.name,
+        SettingsRoot.Instance.CameraRight.name,
+        SettingsRoot.Instance.CameraUp.name,
+        SettingsRoot.Instance.CameraDown.name
 #endif
     ]);
     private static readonly KeyCode[] m_KeyCodes = [Settings.Instance.Up, Settings.Instance.Down, Settings.Instance.Left, Settings.Instance.Right];
@@ -46,7 +51,7 @@ internal static class Patches {
         if (m_KeyCodes.Contains(__instance.Key) && m_Names.Value.Contains(__instance.Name)
 #if RT
             && GamepadInputController.CanProcessInput
-#elif Wrath
+#elif Wrath || KM
             && CanProcess(out _, out _)
 #endif
             ) {

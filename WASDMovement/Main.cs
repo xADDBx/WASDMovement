@@ -77,7 +77,9 @@ public static class Main {
             using (new GUILayout.HorizontalScope()) {
                 UI.Label("Walk Mode".Green());
                 GUILayout.Space(10);
-                UI.SelectionGrid(ref Settings.Instance.WalkMode, m_NumEnums.Value, null);
+                if (UI.SelectionGrid(ref Settings.Instance.WalkMode, m_NumEnums.Value, null)) {
+                    Settings.Instance.Save();
+                }
             }
             UI.Toggle("Hold Binding Mode", "If activated, holding a binding will temporarily override the walk mode. If disabled it will swap to the selected mode.", ref Settings.Instance.HoldBindingMode, null, null);
             using (new GUILayout.HorizontalScope()) {
