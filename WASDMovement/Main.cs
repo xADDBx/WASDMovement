@@ -115,22 +115,41 @@ public static class Main {
                         Settings.Instance.Hotkeys[m_CurrentlyBinding] = m_IsBindingSomething;
                         m_IsBindingSomething = null;
                     }
-                    if (Event.current.isKey && Event.current.type == EventType.KeyDown && m_IsBindingSomething != null) {
-                        m_IsBindingSomething.IsShift = Event.current.modifiers.HasFlag(EventModifiers.Shift);
-                        m_IsBindingSomething.IsAlt = Event.current.modifiers.HasFlag(EventModifiers.Alt);
-                        m_IsBindingSomething.IsCtrl = Event.current.modifiers.HasFlag(EventModifiers.Control) || Event.current.modifiers.HasFlag(EventModifiers.Command);
-                        if (!IsSpecial(Event.current.keyCode)) {
-                            m_IsBindingSomething.Key = Event.current.keyCode;
-                        } else if (Event.current.character != '\0') {
-                            foreach (KeyCode c in Enum.GetValues(typeof(KeyCode))) {
-                                if (Input.GetKeyDown(c)) {
-                                    m_IsBindingSomething.Key = c;
+                    if (m_IsBindingSomething != null) {
+                        bool anyMouseButtonPressed = false;
+                        foreach (var button in (List<KeyCode>)[KeyCode.Mouse0, KeyCode.Mouse1, KeyCode.Mouse2, KeyCode.Mouse3,
+                                                    KeyCode.Mouse4, KeyCode.Mouse5, KeyCode.Mouse6]) {
+                            if (Input.GetKeyDown(button)) {
+                                anyMouseButtonPressed = true;
+                                break;
+                            }
+                        }
+                        if (Event.current.type == EventType.KeyDown || anyMouseButtonPressed) {
+                            m_IsBindingSomething.IsShift = Event.current.modifiers.HasFlag(EventModifiers.Shift);
+                            m_IsBindingSomething.IsAlt = Event.current.modifiers.HasFlag(EventModifiers.Alt);
+                            m_IsBindingSomething.IsCtrl = Event.current.modifiers.HasFlag(EventModifiers.Control) || Event.current.modifiers.HasFlag(EventModifiers.Command);
+                            if (!IsSpecial(Event.current.keyCode)) {
+                                m_IsBindingSomething.Key = Event.current.keyCode;
+                            } else {
+                                var found = false;
+                                foreach (KeyCode c in Enum.GetValues(typeof(KeyCode))) {
+                                    if (IsSpecial(c)) {
+                                        continue;
+                                    }
+                                    if (Input.GetKeyDown(c)) {
+                                        m_IsBindingSomething.Key = c;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    m_IsBindingSomething.Key = KeyCode.None;
                                 }
                             }
-                        } else {
-                            m_IsBindingSomething.Key = KeyCode.None;
+                            if (Event.current.type == EventType.KeyDown || Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseUp) {
+                                Event.current.Use();
+                            }
                         }
-                        Event.current.Use();
                     }
                 }
             }
