@@ -117,7 +117,7 @@ public static class Main {
                     }
                     if (m_IsBindingSomething != null) {
                         bool anyMouseButtonPressed = false;
-                        foreach (var button in (List<KeyCode>)[KeyCode.Mouse0, KeyCode.Mouse1, KeyCode.Mouse2, KeyCode.Mouse3,
+                        foreach (var button in (List<KeyCode>)[KeyCode.Mouse2, KeyCode.Mouse3,
                                                     KeyCode.Mouse4, KeyCode.Mouse5, KeyCode.Mouse6]) {
                             if (Input.GetKeyDown(button)) {
                                 anyMouseButtonPressed = true;
