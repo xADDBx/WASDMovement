@@ -48,7 +48,7 @@ internal static class Patches {
     private static readonly KeyCode[] m_KeyCodes = [Settings.Instance.Up, Settings.Instance.Down, Settings.Instance.Left, Settings.Instance.Right];
     [HarmonyPatch(typeof(KeyboardAccess.Binding), nameof(KeyboardAccess.Binding.InputMatched)), HarmonyPostfix]
     private static void InputMatched(KeyboardAccess.Binding __instance, ref bool __result) {
-        if (m_KeyCodes.Contains(__instance.Key) && m_Names.Value.Contains(__instance.Name)
+        if (Settings.Instance.WalkMode != Main.WalkMode.None && m_KeyCodes.Contains(__instance.Key) && m_Names.Value.Contains(__instance.Name)
 #if RT
             && GamepadInputController.CanProcessInput
 #elif Wrath || KM

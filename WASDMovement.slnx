@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Kingmaker" />
+    <BuildType Name="RogueTrader" />
+    <BuildType Name="Wrath" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Repository.json" />
+  </Folder>
+  <Project Path="WASDMovement/WASDMovement.csproj" />
+</Solution>

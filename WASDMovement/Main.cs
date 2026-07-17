@@ -35,6 +35,7 @@ namespace WASDMovement;
 
 public static class Main {
     public enum WalkMode {
+        None = 0,
         Fast = 1,
         Normal = 2,
         Slow = 10,
@@ -165,6 +166,7 @@ public static class Main {
     private static int m_FramesSinceLastCompanionUpdate = 0;
 #endif
     private static WalkMode? m_LastOverride = null;
+    private static WalkMode? m_LastHandled = null;
     public static void OnUpdate(UnityModManager.ModEntry modEntry, float z) {
         WalkMode? overrideMode = null;
         bool overriden = false;
@@ -182,6 +184,10 @@ public static class Main {
             }
         }
         var actualWalkMode = overrideMode ?? Settings.Instance.WalkMode;
+
+        if (actualWalkMode == WalkMode.None && m_LastHandled == WalkMode.None) {
+            return;
+        }
 #if RT
         if (!GamepadInputController.CanProcessInput) {
             return;
@@ -190,6 +196,8 @@ public static class Main {
         if (!UINetUtility.IsDirectlyControllable(unit)) {
             return;
         }
+
+        m_LastHandled = actualWalkMode;
 
         var movement = ReadKeyboardInput(actualWalkMode);
         if (overrideMode != m_LastOverride || overriden) {
@@ -208,6 +216,9 @@ public static class Main {
         if (!Patches.CanProcess(out var unit, out var camera)) {
             return;
         }
+
+        m_LastHandled = actualWalkMode;
+
         var movement = ReadKeyboardInput(actualWalkMode);
         if (!unit!.IsDirectlyControllable) {
             movement = Vector2.zero;
@@ -336,6 +347,9 @@ public static class Main {
 #endif
     }
     private static Vector2 ReadKeyboardInput(WalkMode mode) {
+        if (mode == WalkMode.None) {
+            return new Vector2(0, 0);
+        }
         float x = 0f, y = 0f;
 
         if (Input.GetKey(Settings.Instance.Left)) {
